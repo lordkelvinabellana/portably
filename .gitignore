@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.vercel/
+.DS_Store
+Thumbs.db
+# EmulatorJS runtime is copied from node_modules at install time (see apps/web/scripts)
+apps/web/public/emulatorjs/
+# Never commit game images or saves
+*.iso
+*.cso
+*.chd
+*.pbp
+*.state
+
+# Local-only test assets (homebrew etc.), never committed
+apps/web/public/dev/
