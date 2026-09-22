@@ -128,6 +128,16 @@ export const CORE_OPTIONS: CoreOption[] = [
 
 const KNOWN = new Map(CORE_OPTIONS.map((o) => [o.key, new Set(o.choices.map((c) => c.value))]))
 
+/**
+ * App-wide defaults applied under each game's own settings. Chosen for smoothness in the
+ * browser: auto frame skip keeps game speed steady when the GPU cannot hold 60 fps, and
+ * native resolution keeps the fill-rate cost low. Players can override per game.
+ */
+export const DEFAULT_CORE_OPTIONS: CoreSettings = {
+  ppsspp_auto_frameskip: 'enabled',
+  ppsspp_internal_resolution: '480x272',
+}
+
 export type CoreSettings = Record<string, string>
 
 /** Keep only known keys with valid values. */

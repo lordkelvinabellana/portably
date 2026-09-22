@@ -33,10 +33,22 @@ function loadStyle(href: string) {
   })
 }
 
+/** True when emulator.min.js has already executed on this page (top-level class binding). */
+function emulatorClassPresent(): boolean {
+  try {
+    return new Function('return typeof EmulatorJS')() === 'function'
+  } catch {
+    return false
+  }
+}
+
 export function loadEmulatorScripts(): Promise<void> {
   if (!scripts) {
     scripts = (async () => {
-      await loadScript(`${EJS_DATA_PATH}emulator.min.js`)
+      // Never inject twice: a second execution throws "Identifier 'EmulatorJS' has already been declared".
+      const src = `${EJS_DATA_PATH}emulator.min.js`
+      if (emulatorClassPresent() || document.querySelector(`script[src="${src}"]`)) return
+      await loadScript(src)
       await loadStyle(`${EJS_DATA_PATH}emulator.min.css`)
     })()
   }

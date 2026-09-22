@@ -11,8 +11,9 @@ import { getCoreVersion } from '../states/coreVersion'
 import { StateManager, type StatesStatus } from '../states/StateManager'
 import { AUTO_SLOT } from '../states/statesApi'
 import { StatesPanel } from '../states/StatesPanel'
-import { readCoreSettings } from '../settings/coreSettings'
+import { DEFAULT_CORE_OPTIONS, readCoreSettings } from '../settings/coreSettings'
 import { deviceLabel, endPlaySession, startPlaySession } from './sessions'
+import { KeyMapPanel } from './KeyMapPanel'
 
 type Phase =
   | { kind: 'loading' }
@@ -46,6 +47,10 @@ export function PlayerPage() {
   const [states, setStates] = useState<StatesStatus | null>(null)
   const [coreVersion, setCoreVersion] = useState<string | null>(null)
   const [showStates, setShowStates] = useState(false)
+  const [showKeys, setShowKeys] = useState(() => localStorage.getItem('portably:showKeys') !== '0')
+  useEffect(() => {
+    localStorage.setItem('portably:showKeys', showKeys ? '1' : '0')
+  }, [showKeys])
   const [resumeOffer, setResumeOffer] = useState<{ at: string; device: string | null; otherBuild: boolean } | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [hidden, setHidden] = useState(document.visibilityState === 'hidden')
@@ -121,7 +126,7 @@ export function PlayerPage() {
         gameUrl: url,
         gameName: entry.game.title,
         gameId: entry.game.id,
-        coreOptions: readCoreSettings(entry.userGame),
+        coreOptions: { ...DEFAULT_CORE_OPTIONS, ...readCoreSettings(entry.userGame) },
         hideButtons: HIDDEN_BUTTONS,
         onStart: () => {
           if (cancelled) return
@@ -238,6 +243,9 @@ export function PlayerPage() {
               <button type="button" className={`btn ${showStates ? 'bg-zinc-700' : ''}`} aria-pressed={showStates} onClick={() => setShowStates((v) => !v)}>
                 States
               </button>
+              <button type="button" className={`btn ${showKeys ? 'bg-zinc-700' : ''}`} aria-pressed={showKeys} onClick={() => setShowKeys((v) => !v)}>
+                Keys
+              </button>
               <button type="button" className="btn" onClick={() => emuRef.current?.openControls()} title="Remap keyboard and gamepad">
                 Controls
               </button>
@@ -321,6 +329,8 @@ export function PlayerPage() {
         className="w-full max-w-[960px] bg-black"
         style={{ aspectRatio: '480 / 272', display: phase.kind === 'booting' || running || phase.kind === 'exited' ? undefined : 'none' }}
       />
+
+      {running && showKeys && <KeyMapPanel ejs={emuRef.current?.ejs} onOpenControls={() => emuRef.current?.openControls()} />}
 
       {running && showStates && states && (
         <StatesPanel

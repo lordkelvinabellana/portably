@@ -6,7 +6,7 @@ interface Item {
 }
 
 // Noise from the emulator runtime that is not actionable for the player.
-const IGNORE = [/WakeLock/i, /ExitStatus/i, /Program terminated with exit/i, /ResizeObserver loop/i]
+const IGNORE = [/wake ?lock/i, /ExitStatus/i, /Program terminated with exit/i, /ResizeObserver loop/i]
 
 /**
  * Surfaces uncaught errors and unhandled promise rejections as dismissible toasts.
