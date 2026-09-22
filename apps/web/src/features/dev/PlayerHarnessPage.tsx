@@ -3,6 +3,7 @@ import { emulatorAlreadyUsed, mountEmulator, type EmulatorHandle } from '../emul
 import { fsListSavedataDirs, fsReadTree, idbReadSavedata, idbWriteSavedata, snapshotHash } from '../sync/memstick'
 import { gunzip, gzip, packTar, unpackTar } from '../sync/tar'
 import { formatBytes } from '../../lib/format'
+import { PspShell } from '../player/PspShell'
 
 /**
  * Dev harness for Phase 3 without Supabase: mounts the emulator through our wrapper
@@ -30,12 +31,26 @@ export function PlayerHarnessPage() {
       gameUrl: url,
       gameName: 'CSPSP',
       gameId: 1,
+      // ?opt=key:value;key:value  (defaults to none so the harness isolates page behaviour)
+      coreOptions: Object.fromEntries(
+        (new URLSearchParams(location.search).get('opt') ?? '')
+          .split(';')
+          .map((p) => p.split(':'))
+          .filter((kv) => kv.length === 2)
+          .map(([k, v]) => [k.trim(), v.trim()]),
+      ),
+      // ?nomirror=1 skips the PPSSPP asset mirror (see emulatorjs.ts)
+      skipAssetMirror: new URLSearchParams(location.search).get('nomirror') === '1',
       hideButtons: ['saveState', 'loadState', 'saveSavFiles', 'loadSavFiles', 'cacheManager', 'netplay', 'exitEmulation'],
       onSaveDatabaseLoaded: (FS) => add(`saveDatabaseLoaded: /data/saves has ${FS.readdir('/data/saves').length - 2} entries`),
       onReady: () => add('ready'),
       onStart: () => {
         add('start')
         setRunning(true)
+        const FS = handle.FS
+        for (const p of ['/home/web_user/retroarch/system/PPSSPP/ppge_atlas.zim', '/home/web_user/retroarch/userdata/system/PPSSPP/ppge_atlas.zim']) {
+          add(`${p}: ${FS.analyzePath(p).exists ? 'present' : 'missing'}`)
+        }
       },
       onExit: () => {
         add('exit')
@@ -110,7 +125,9 @@ export function PlayerHarnessPage() {
         </button>
       </div>
       {shotUrl && <img src={shotUrl} alt="screenshot" className="mb-3 h-32 rounded border border-zinc-800" />}
-      <div ref={container} id="harness-emulator" className="mb-3 w-full max-w-[960px] bg-black" style={{ aspectRatio: '480 / 272' }} />
+      <PspShell input={(id, v) => emu.current?.input(id, v)}>
+        <div ref={container} id="harness-emulator" className="w-full bg-black" style={{ aspectRatio: '480 / 272' }} />
+      </PspShell>
       <pre className="whitespace-pre-wrap rounded border border-zinc-800 bg-zinc-900 p-3 text-xs">{log.join('\n') || 'idle'}</pre>
     </div>
   )

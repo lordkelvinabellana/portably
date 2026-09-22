@@ -22,6 +22,24 @@ If it still crashes, the title is not compatible with this core build yet. Repor
 the disc id (shown on the card) so it can be tracked; a newer `@emulatorjs/core-ppsspp`
 may fix it.
 
+## PSP system dialogs show blocks instead of text (name entry, save/load dialogs)
+
+**Console:** `[libretro ERROR] [IO] Couldn't read data for 'ppge_atlas.zim'`
+
+The PSP's built-in dialogs are drawn by PPSSPP's own "PPGe" renderer with a font atlas.
+EmulatorJS extracts the asset bundle to `/PPSSPP`, but the core looks under RetroArch's
+system directory (`system_directory = "default"` -> `~/retroarch/...`). The game itself
+renders fine; only the OS-level dialogs are affected. Fixed by mirroring the assets into
+the system directory right after EmulatorJS extracts them (see `mirrorPpssppAssets` in
+`features/emulator/emulatorjs.ts`). If blocks still appear, check the dev harness log at
+`/dev/player`: it reports whether `ppge_atlas.zim` is present in the mirrored locations.
+
+## Playing inside the Claude desktop app's browser pane
+
+The embedded pane throttles or pauses animation frames whenever it is hidden or the
+window is occluded, so emulation there stutters or stops. Play in a normal browser tab
+(Edge, Chrome) with the tab in the foreground.
+
 ## "Wake Lock permission request denied"
 
 Harmless. RetroArch asks the browser to keep the screen awake while a game runs; browsers

@@ -59,6 +59,59 @@ export function emulatorAlreadyUsed(): boolean {
   return !!(window as any).__portablyEmulatorUsed
 }
 
+/**
+ * EmulatorJS extracts the PPSSPP asset bundle (fonts, atlases, compat.ini) to /PPSSPP,
+ * but the core resolves assets under RetroArch's system directory, so PSP system dialogs
+ * (on-screen keyboard, save dialogs) render their text as blocks. Mirror the assets into
+ * the candidate system directories after EmulatorJS has extracted them.
+ */
+const PPSSPP_ASSET_DIRS = ['/home/web_user/retroarch/system/PPSSPP', '/home/web_user/retroarch/userdata/system/PPSSPP']
+
+function mkdirp(FS: any, path: string) {
+  let cur = ''
+  for (const part of path.split('/').filter(Boolean)) {
+    cur += `/${part}`
+    if (!FS.analyzePath(cur).exists) FS.mkdir(cur)
+  }
+}
+
+function mirrorTree(FS: any, src: string, dst: string) {
+  mkdirp(FS, dst)
+  for (const name of FS.readdir(src) as string[]) {
+    if (name === '.' || name === '..') continue
+    const s = `${src}/${name}`
+    const d = `${dst}/${name}`
+    if (FS.isDir(FS.stat(s).mode)) mirrorTree(FS, s, d)
+    else FS.writeFile(d, FS.readFile(s))
+  }
+}
+
+export function mirrorPpssppAssets(FS: any): string[] {
+  const done: string[] = []
+  if (!FS.analyzePath('/PPSSPP').exists) return done
+  for (const dir of PPSSPP_ASSET_DIRS) {
+    try {
+      mirrorTree(FS, '/PPSSPP', dir)
+      done.push(dir)
+    } catch (e) {
+      console.warn('could not mirror PPSSPP assets to', dir, e)
+    }
+  }
+  return done
+}
+
+function patchAssetLoading() {
+  const GM = (window as any).EJS_GameManager
+  if (!GM || GM.prototype.__portablyAssetsPatched) return
+  const original = GM.prototype.loadPpssppAssets
+  GM.prototype.loadPpssppAssets = async function (this: any, ...args: unknown[]) {
+    const result = await original.apply(this, args)
+    mirrorPpssppAssets(this.FS)
+    return result
+  }
+  GM.prototype.__portablyAssetsPatched = true
+}
+
 export interface MountOptions {
   /** Element with an id; EmulatorJS renders into it. */
   container: HTMLElement
@@ -68,6 +121,8 @@ export interface MountOptions {
   coreOptions?: Record<string, string>
   /** EmulatorJS bottom-bar buttons to hide */
   hideButtons?: string[]
+  /** Dev/bisect switch: do not mirror PPSSPP assets into the system directory */
+  skipAssetMirror?: boolean
   /** Fired after the save filesystem (IDBFS) is mounted and before the game boots. Must be synchronous. */
   onSaveDatabaseLoaded?: (FS: any) => void
   onReady?: () => void
@@ -85,6 +140,11 @@ export interface EmulatorHandle {
   fullscreen(on: boolean): void
   /** Opens EmulatorJS's keyboard/gamepad remapping menu. */
   openControls(): void
+  /**
+   * Inject a RetroPad input for player 1. Digital buttons take 1/0; the analog
+   * directions (ids 16..19) take 0..0x7fff.
+   */
+  input(id: number, value: number): void
   getState(): Uint8Array
   loadState(state: Uint8Array): void
   /** PNG of the current frame, or null when capture is unavailable. */
@@ -100,6 +160,7 @@ export async function mountEmulator(o: MountOptions): Promise<EmulatorHandle> {
   }
   if (!o.container.id) throw new Error('container needs an id')
   await loadEmulatorScripts()
+  if (!o.skipAssetMirror) patchAssetLoading()
   ;(window as any).__portablyEmulatorUsed = true
 
   const hide = Object.fromEntries((o.hideButtons ?? []).map((k) => [k, false]))
@@ -139,6 +200,13 @@ export async function mountEmulator(o: MountOptions): Promise<EmulatorHandle> {
     fullscreen: (on) => ejs.toggleFullscreen?.(on),
     openControls: () => {
       if (ejs.controlMenu) ejs.controlMenu.style.display = ''
+    },
+    input: (id, value) => {
+      try {
+        ejs.gameManager?.simulateInput(0, id, value)
+      } catch {
+        /* core not ready */
+      }
     },
     getState: () => ejs.gameManager.getState(),
     loadState: (s) => ejs.gameManager.loadState(s),

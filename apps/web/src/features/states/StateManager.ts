@@ -1,6 +1,6 @@
 import type { Game } from '../../lib/db.types'
 import type { EmulatorHandle } from '../emulator/emulatorjs'
-import { gzip } from '../sync/tar'
+import { gzipOffThread } from '../sync/gzipWorker'
 import { getCoreVersion } from './coreVersion'
 import { AUTO_SLOT, deleteState, fetchStateBytes, listStates, putState, screenshotUrls, type StateRow } from './statesApi'
 
@@ -61,8 +61,12 @@ export class StateManager {
     this.set({ busy: { kind: 'saving', slot }, error: undefined })
     try {
       const raw = this.handle.getState()
-      const [shot, coreVersion] = await Promise.all([this.handle.screenshot().catch(() => null), getCoreVersion()])
-      const stateGz = await gzip(raw)
+      // Compress on a worker: gzipping 40 MB on the main thread would hitch the frame loop.
+      const [shot, coreVersion, stateGz] = await Promise.all([
+        this.handle.screenshot().catch(() => null),
+        getCoreVersion(),
+        gzipOffThread(raw),
+      ])
       await putState({ userId: this.userId, gameId: this.game.id, discId: this.game.disc_id, slot, stateGz, screenshot: shot, coreVersion })
       if (slot === AUTO_SLOT) {
         this.lastAutoFrame = this.handle.frameCount()

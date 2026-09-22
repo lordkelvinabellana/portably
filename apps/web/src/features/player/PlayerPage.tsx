@@ -14,6 +14,7 @@ import { StatesPanel } from '../states/StatesPanel'
 import { DEFAULT_CORE_OPTIONS, readCoreSettings } from '../settings/coreSettings'
 import { deviceLabel, endPlaySession, startPlaySession } from './sessions'
 import { KeyMapPanel } from './KeyMapPanel'
+import { PspShell } from './PspShell'
 
 type Phase =
   | { kind: 'loading' }
@@ -51,6 +52,18 @@ export function PlayerPage() {
   useEffect(() => {
     localStorage.setItem('portably:showKeys', showKeys ? '1' : '0')
   }, [showKeys])
+  // On-screen PSP buttons: default on for touch devices, remembered per browser.
+  // Toggling remounts the emulator container, so it is only changeable before boot or is
+  // applied by reloading the player; while running we keep the current layout.
+  const [showPad] = useState(() => {
+    const saved = localStorage.getItem('portably:showPad')
+    return saved ? saved === '1' : navigator.maxTouchPoints > 0
+  })
+  const togglePadNextTime = () => {
+    localStorage.setItem('portably:showPad', showPad ? '0' : '1')
+    setNotice(`On-screen buttons will be ${showPad ? 'hidden' : 'shown'} the next time you open a game.`)
+    window.setTimeout(() => setNotice(null), 4000)
+  }
   const [resumeOffer, setResumeOffer] = useState<{ at: string; device: string | null; otherBuild: boolean } | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [hidden, setHidden] = useState(document.visibilityState === 'hidden')
@@ -249,6 +262,9 @@ export function PlayerPage() {
               <button type="button" className="btn" onClick={() => emuRef.current?.openControls()} title="Remap keyboard and gamepad">
                 Controls
               </button>
+              <button type="button" className="btn" onClick={togglePadNextTime} title="Show or hide the on-screen PSP buttons">
+                {showPad ? 'Hide pad' : 'Show pad'}
+              </button>
               <button type="button" className="btn" onClick={() => emuRef.current?.fullscreen(true)}>
                 Fullscreen
               </button>
@@ -323,12 +339,16 @@ export function PlayerPage() {
         </div>
       )}
 
-      <div
-        ref={container}
-        id="portably-emulator"
-        className="w-full max-w-[960px] bg-black"
-        style={{ aspectRatio: '480 / 272', display: phase.kind === 'booting' || running || phase.kind === 'exited' ? undefined : 'none' }}
-      />
+      {/* The emulator container must stay mounted at one DOM position; the shell wraps it visually. */}
+      <div style={{ display: phase.kind === 'booting' || running || phase.kind === 'exited' ? undefined : 'none' }}>
+        {showPad ? (
+          <PspShell input={(id, v) => emuRef.current?.input(id, v)}>
+            <div ref={container} id="portably-emulator" className="w-full bg-black" style={{ aspectRatio: '480 / 272' }} />
+          </PspShell>
+        ) : (
+          <div ref={container} id="portably-emulator" className="w-full max-w-[960px] bg-black" style={{ aspectRatio: '480 / 272' }} />
+        )}
+      </div>
 
       {running && showKeys && <KeyMapPanel ejs={emuRef.current?.ejs} onOpenControls={() => emuRef.current?.openControls()} />}
 

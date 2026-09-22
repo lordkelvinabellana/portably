@@ -134,6 +134,7 @@ const KNOWN = new Map(CORE_OPTIONS.map((o) => [o.key, new Set(o.choices.map((c) 
  * native resolution keeps the fill-rate cost low. Players can override per game.
  */
 export const DEFAULT_CORE_OPTIONS: CoreSettings = {
+  ppsspp_cpu_core: 'IR JIT', // the IR interpreter; roughly 2x the plain interpreter in wasm
   ppsspp_auto_frameskip: 'enabled',
   ppsspp_internal_resolution: '480x272',
 }
