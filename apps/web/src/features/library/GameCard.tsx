@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import type { LibraryEntry } from './api'
 import { formatBytes, formatRelative } from '../../lib/format'
 
@@ -44,9 +45,15 @@ export function GameCard({ entry, busy, onDownload, onRemoveLocal, onDeleteCloud
       </span>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <button type="button" className="btn btn-primary" disabled title="Playing arrives in Phase 3">
-          Play
-        </button>
+        {local || cloud ? (
+          <Link to={`/play/${game.id}`} className="btn btn-primary">
+            {local ? 'Play' : 'Download & play'}
+          </Link>
+        ) : (
+          <button type="button" className="btn btn-primary" disabled title="Upload did not finish; add the file again to resume">
+            Play
+          </button>
+        )}
         {cloud && !local && (
           <button type="button" className="btn" disabled={busy} onClick={onDownload}>
             Download

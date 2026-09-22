@@ -4,8 +4,10 @@ import { RequireAuth } from './RequireAuth'
 import { LoginPage } from '../features/auth/LoginPage'
 import { AuthCallbackPage } from '../features/auth/AuthCallbackPage'
 import { LibraryPage } from '../features/library/LibraryPage'
+import { PlayerPage } from '../features/player/PlayerPage'
 import { SpikePage } from '../features/dev/SpikePage'
 import { IdentifyPage } from '../features/dev/IdentifyPage'
+import { PlayerHarnessPage } from '../features/dev/PlayerHarnessPage'
 
 export const router = createBrowserRouter([
   {
@@ -16,9 +18,13 @@ export const router = createBrowserRouter([
       // Phase 0 spike stays reachable without an account for emulator work.
       { path: '/dev/spike', element: <SpikePage /> },
       { path: '/dev/identify', element: <IdentifyPage /> },
+      { path: '/dev/player', element: <PlayerHarnessPage /> },
       {
         element: <RequireAuth />,
-        children: [{ path: '/', element: <LibraryPage /> }],
+        children: [
+          { path: '/', element: <LibraryPage /> },
+          { path: '/play/:gameId', element: <PlayerPage /> },
+        ],
       },
       { path: '*', element: <p className="text-zinc-400">Page not found.</p> },
     ],

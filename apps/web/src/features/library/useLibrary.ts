@@ -14,10 +14,20 @@ import {
 import { downloadToDevice } from './download'
 import { sha256File } from './hash'
 import { hasLocal, listLocalShas, removeLocal, requestPersistentStorage, storageEstimate, writeLocal } from './opfs'
-import { identifyGame } from './psp/identify'
+import { formatFromName, identifyGame } from './psp/identify'
+import { normalizeHomebrewZip } from './psp/zip'
 import { createResumableUpload, type ResumableUpload } from './upload'
 
-export type TaskStage = 'hashing' | 'identifying' | 'caching' | 'uploading' | 'downloading' | 'verifying' | 'done' | 'error'
+export type TaskStage =
+  | 'repacking'
+  | 'hashing'
+  | 'identifying'
+  | 'caching'
+  | 'uploading'
+  | 'downloading'
+  | 'verifying'
+  | 'done'
+  | 'error'
 
 export interface Task {
   id: string
@@ -97,6 +107,16 @@ export function useLibrary() {
       addTask({ id, kind: 'add', label: file.name, stage: 'hashing', progress: 0, cancel: () => abort.abort() })
       try {
         void requestPersistentStorage()
+        if (formatFromName(file.name) === 'zip') {
+          // EmulatorJS boots the first bootable entry in a zip; make sure that is EBOOT.PBP.
+          patchTask(id, { stage: 'repacking' })
+          const fixed = await normalizeHomebrewZip(file)
+          if (fixed) {
+            file = fixed
+            patchTask(id, { detail: 'repacked so EBOOT.PBP boots first' })
+          }
+          patchTask(id, { stage: 'hashing' })
+        }
         const sha = await sha256File(file, (d, t) => patchTask(id, { progress: d / t }), abort.signal)
 
         patchTask(id, { stage: 'identifying', progress: 0 })

@@ -461,3 +461,7 @@ Spike results are recorded in `docs/PHASE0.md`. Two corrections to the design ab
   parsers, streaming hashing, OPFS cache, tus resumable uploads, verified downloads,
   shelf UI. Details and the credential-dependent verification list are in
   `docs/PHASE2.md`. CHD support was dropped because the core does not accept it.
+- **Phase 3 delivered (2026-09-22, same branch)**: player page, save sync engine
+  (restore before boot via IDBFS, live-FS polling, versioned bundles, conflict dialog),
+  play sessions, homebrew zip repacking. Verified against the emulator without Supabase;
+  the credential-dependent checks are listed in `docs/PHASE3.md`.

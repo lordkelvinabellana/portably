@@ -1,6 +1,7 @@
 import type { Task } from './useLibrary'
 
 const STAGE_LABEL: Record<Task['stage'], string> = {
+  repacking: 'Repacking homebrew zip',
   hashing: 'Fingerprinting',
   identifying: 'Reading disc info',
   caching: 'Saving to this device',

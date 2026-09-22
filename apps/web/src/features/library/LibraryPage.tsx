@@ -1,5 +1,6 @@
 import { useRef } from 'react'
-import { formatBytes } from '../../lib/format'
+import { Link } from 'react-router'
+import { formatBytes, formatRelative } from '../../lib/format'
 import { GameCard } from './GameCard'
 import { TaskList } from './TaskList'
 import { useLibrary } from './useLibrary'
@@ -60,6 +61,23 @@ export function LibraryPage() {
       </div>
 
       <TaskList tasks={lib.tasks} onDismiss={lib.dropTask} />
+
+      {lib.entries.some((e) => e.userGame.last_played_at) && (
+        <section className="mb-6">
+          <h2 className="mb-2 text-sm font-medium text-zinc-400">Continue playing</h2>
+          <div className="flex flex-wrap gap-2">
+            {lib.entries
+              .filter((e) => e.userGame.last_played_at)
+              .slice(0, 4)
+              .map((e) => (
+                <Link key={e.userGame.game_id} to={`/play/${e.game.id}`} className="btn">
+                  ▶ {e.game.title}
+                  <span className="ml-2 text-xs text-zinc-500">{formatRelative(e.userGame.last_played_at)}</span>
+                </Link>
+              ))}
+          </div>
+        </section>
+      )}
 
       {lib.error && <p className="mb-4 text-sm text-red-400">{lib.error}</p>}
       {lib.loading ? (

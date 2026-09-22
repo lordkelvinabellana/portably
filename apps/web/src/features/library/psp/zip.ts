@@ -1,4 +1,5 @@
-import { inflateRaw, u16, u32, type ByteSource } from './bytes'
+import { blobSource, inflateRaw, u16, u32, type ByteSource } from './bytes'
+import { writeStoredZip } from './zipwrite'
 
 /**
  * Just enough ZIP reading to pull one file (EBOOT.PBP) out of a homebrew folder zip.
@@ -74,4 +75,28 @@ export async function readZipEntry(src: ByteSource, entry: ZipEntry, maxBytes = 
 /** First entry whose file name is EBOOT.PBP (any folder), or null. */
 export function findEboot(entries: ZipEntry[]): ZipEntry | null {
   return entries.find((e) => /(^|\/)EBOOT\.PBP$/i.test(e.name)) ?? null
+}
+
+/** Extensions the EmulatorJS PPSSPP core will try to boot (core.json). */
+const BOOTABLE = /\.(elf|iso|cso|prx|pbp)$/i
+
+/**
+ * EmulatorJS boots the first zip entry with a bootable extension, so a homebrew zip whose
+ * .prx helper modules precede EBOOT.PBP boots the wrong file. Returns a repacked (stored)
+ * zip with EBOOT.PBP first, or null when the zip is already fine.
+ */
+export async function normalizeHomebrewZip(file: File, maxBytes = 512 << 20): Promise<File | null> {
+  const src = blobSource(file)
+  const entries = (await listZipEntries(src)).filter((e) => !e.name.endsWith('/'))
+  const eboot = findEboot(entries)
+  if (!eboot) return null
+  const firstBootable = entries.find((e) => BOOTABLE.test(e.name))
+  if (firstBootable === eboot) return null
+  const total = entries.reduce((n, e) => n + e.size, 0)
+  if (total > maxBytes) throw new Error('homebrew zip too large to repack in the browser')
+  const ordered = [eboot, ...entries.filter((e) => e !== eboot)]
+  const files: { name: string; data: Uint8Array }[] = []
+  for (const e of ordered) files.push({ name: e.name, data: await readZipEntry(src, e, maxBytes) })
+  const out = writeStoredZip(files)
+  return new File([out as BlobPart], file.name, { type: 'application/zip', lastModified: file.lastModified })
 }

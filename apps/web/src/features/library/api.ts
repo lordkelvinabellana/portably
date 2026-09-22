@@ -30,6 +30,20 @@ export async function fetchLibrary(userId: string): Promise<LibraryEntry[]> {
     .filter((e): e is LibraryEntry => !!e.game)
 }
 
+export async function fetchEntry(userId: string, gameId: number): Promise<LibraryEntry | null> {
+  const { data: userGame, error } = await supabase
+    .from('user_games')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('game_id', gameId)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!userGame) return null
+  const { data: game, error: gErr } = await supabase.from('games').select('*').eq('id', gameId).single()
+  if (gErr) throw new Error(gErr.message)
+  return { game, userGame }
+}
+
 export async function upsertGame(discId: string, title: string, region: string | null): Promise<Game> {
   const { data, error } = await supabase.rpc('upsert_game', {
     p_disc_id: discId,
