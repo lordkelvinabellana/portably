@@ -8,6 +8,7 @@ import { PlayerPage } from '../features/player/PlayerPage'
 import { SpikePage } from '../features/dev/SpikePage'
 import { IdentifyPage } from '../features/dev/IdentifyPage'
 import { PlayerHarnessPage } from '../features/dev/PlayerHarnessPage'
+import { LicensesPage, PrivacyPage, TermsPage } from '../features/legal/LegalPages'
 
 export const router = createBrowserRouter([
   {
@@ -19,6 +20,9 @@ export const router = createBrowserRouter([
       { path: '/dev/spike', element: <SpikePage /> },
       { path: '/dev/identify', element: <IdentifyPage /> },
       { path: '/dev/player', element: <PlayerHarnessPage /> },
+      { path: '/legal/terms', element: <TermsPage /> },
+      { path: '/legal/privacy', element: <PrivacyPage /> },
+      { path: '/legal/licenses', element: <LicensesPage /> },
       {
         element: <RequireAuth />,
         children: [

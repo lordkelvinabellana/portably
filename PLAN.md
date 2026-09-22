@@ -470,3 +470,9 @@ Spike results are recorded in `docs/PHASE0.md`. Two corrections to the design ab
   core-version tagging with a load warning, state gallery in the Player. Verified against
   the emulator via the dev harness; credential-dependent checks in `docs/PHASE4.md`.
   MVP scope (Phases 0-4) is now code-complete pending account setup and manual QA.
+- **Phase 5 delivered (2026-09-22, same branch)**: per-game core settings dialog,
+  Controls entry to EmulatorJS's remapper, installable PWA shell with the emulator runtime
+  cached on first use, error boundary and toasts, loading skeletons, accessibility pass,
+  Terms/Privacy/Licenses pages with an ownership affirmation at sign-up. `docs/PHASE5.md`.
+  Remaining before launch: fill legal placeholders, account setup (`docs/PHASE1.md`),
+  credential-dependent QA from each phase doc, then merge `phase-1-foundation` into `main`.

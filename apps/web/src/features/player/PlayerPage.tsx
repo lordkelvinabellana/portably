@@ -11,6 +11,7 @@ import { getCoreVersion } from '../states/coreVersion'
 import { StateManager, type StatesStatus } from '../states/StateManager'
 import { AUTO_SLOT } from '../states/statesApi'
 import { StatesPanel } from '../states/StatesPanel'
+import { readCoreSettings } from '../settings/coreSettings'
 import { deviceLabel, endPlaySession, startPlaySession } from './sessions'
 
 type Phase =
@@ -120,6 +121,7 @@ export function PlayerPage() {
         gameUrl: url,
         gameName: entry.game.title,
         gameId: entry.game.id,
+        coreOptions: readCoreSettings(entry.userGame),
         hideButtons: HIDDEN_BUTTONS,
         onStart: () => {
           if (cancelled) return
@@ -233,8 +235,11 @@ export function PlayerPage() {
               <button type="button" className="btn" onClick={() => void syncRef.current?.syncNow()}>
                 Sync now
               </button>
-              <button type="button" className={`btn ${showStates ? 'bg-zinc-700' : ''}`} onClick={() => setShowStates((v) => !v)}>
+              <button type="button" className={`btn ${showStates ? 'bg-zinc-700' : ''}`} aria-pressed={showStates} onClick={() => setShowStates((v) => !v)}>
                 States
+              </button>
+              <button type="button" className="btn" onClick={() => emuRef.current?.openControls()} title="Remap keyboard and gamepad">
+                Controls
               </button>
               <button type="button" className="btn" onClick={() => emuRef.current?.fullscreen(true)}>
                 Fullscreen

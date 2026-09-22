@@ -71,6 +71,8 @@ export interface EmulatorHandle {
   pause(): void
   play(): void
   fullscreen(on: boolean): void
+  /** Opens EmulatorJS's keyboard/gamepad remapping menu. */
+  openControls(): void
   getState(): Uint8Array
   loadState(state: Uint8Array): void
   /** PNG of the current frame, or null when capture is unavailable. */
@@ -123,6 +125,9 @@ export async function mountEmulator(o: MountOptions): Promise<EmulatorHandle> {
     pause: () => ejs.pause?.(),
     play: () => ejs.play?.(),
     fullscreen: (on) => ejs.toggleFullscreen?.(on),
+    openControls: () => {
+      if (ejs.controlMenu) ejs.controlMenu.style.display = ''
+    },
     getState: () => ejs.gameManager.getState(),
     loadState: (s) => ejs.gameManager.loadState(s),
     screenshot: async () => {

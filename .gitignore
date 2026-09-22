@@ -21,3 +21,6 @@ apps/web/public/dev/
 # Supabase CLI local state
 supabase/.temp/
 supabase/.branches/
+
+# vite-plugin-pwa dev output
+apps/web/dev-dist/

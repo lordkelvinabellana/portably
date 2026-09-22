@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useLocation } from 'react-router'
+import { Link, Navigate, useLocation } from 'react-router'
 import { authRedirectUrl, supabase, supabaseConfigured } from '../../lib/supabase'
 import { useAuth } from '../../app/useAuth'
 import { SetupNotice } from '../../app/RequireAuth'
@@ -17,6 +17,7 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [agree, setAgree] = useState(false)
 
   if (!supabaseConfigured) return <SetupNotice />
   if (ready && user) return <Navigate to={from} replace />
@@ -105,9 +106,33 @@ export function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </label>
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        {notice && <p className="text-sm text-emerald-400">{notice}</p>}
-        <button type="submit" className="btn btn-primary" disabled={busy}>
+        {mode === 'signup' && (
+          <label className="flex items-start gap-2 text-xs text-zinc-300">
+            <input type="checkbox" required checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5" />
+            <span>
+              I own the games I add, I made the images myself, and I will not share them. I accept the{' '}
+              <Link to="/legal/terms" className="underline">
+                Terms
+              </Link>{' '}
+              and{' '}
+              <Link to="/legal/privacy" className="underline">
+                Privacy Policy
+              </Link>
+              .
+            </span>
+          </label>
+        )}
+        {error && (
+          <p className="text-sm text-red-400" role="alert">
+            {error}
+          </p>
+        )}
+        {notice && (
+          <p className="text-sm text-emerald-400" role="status">
+            {notice}
+          </p>
+        )}
+        <button type="submit" className="btn btn-primary" disabled={busy || (mode === 'signup' && !agree)}>
           {busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
         </button>
       </form>

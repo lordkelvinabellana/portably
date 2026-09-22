@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../app/useAuth'
 import type { Profile } from '../../lib/db.types'
+import { supabase } from '../../lib/supabase'
+import { withCoreSettings, type CoreSettings } from '../settings/coreSettings'
 import {
   deleteUserGame,
   fetchLibrary,
@@ -236,5 +238,18 @@ export function useLibrary() {
     [refresh],
   )
 
-  return { ...state, refresh, addGame, downloadGame, removeFromDevice, deleteFromCloud, dropTask }
+  const updateCoreSettings = useCallback(
+    async (entry: LibraryEntry, core: CoreSettings) => {
+      const { error } = await supabase
+        .from('user_games')
+        .update({ settings: withCoreSettings(entry.userGame.settings, core) })
+        .eq('user_id', entry.userGame.user_id)
+        .eq('game_id', entry.userGame.game_id)
+      if (error) throw new Error(error.message)
+      await refresh()
+    },
+    [refresh],
+  )
+
+  return { ...state, refresh, addGame, downloadGame, removeFromDevice, deleteFromCloud, dropTask, updateCoreSettings }
 }

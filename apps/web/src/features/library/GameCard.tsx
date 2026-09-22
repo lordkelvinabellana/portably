@@ -8,9 +8,10 @@ interface Props {
   onDownload: () => void
   onRemoveLocal: () => void
   onDeleteCloud: () => void
+  onSettings: () => void
 }
 
-export function GameCard({ entry, busy, onDownload, onRemoveLocal, onDeleteCloud }: Props) {
+export function GameCard({ entry, busy, onDownload, onRemoveLocal, onDeleteCloud, onSettings }: Props) {
   const { game, userGame, local } = entry
   const cloud = userGame.upload_status === 'ready' && !!userGame.storage_path
   const status = cloud && local ? 'On this device and in cloud' : cloud ? 'In cloud' : local ? 'On this device only' : 'Missing everywhere'
@@ -64,7 +65,10 @@ export function GameCard({ entry, busy, onDownload, onRemoveLocal, onDeleteCloud
             Remove from device
           </button>
         )}
-        <button type="button" className="btn ml-auto text-red-300" disabled={busy} onClick={onDeleteCloud}>
+        <button type="button" className="btn ml-auto" aria-label={`Settings for ${game.title}`} title="Game settings" onClick={onSettings}>
+          ⚙
+        </button>
+        <button type="button" className="btn text-red-300" disabled={busy} onClick={onDeleteCloud} aria-label={`Delete ${game.title} from cloud library`}>
           Delete
         </button>
       </div>

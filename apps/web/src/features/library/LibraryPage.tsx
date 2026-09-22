@@ -1,6 +1,9 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { formatBytes, formatRelative } from '../../lib/format'
+import { readCoreSettings } from '../settings/coreSettings'
+import { GameSettingsDialog } from '../settings/GameSettingsDialog'
+import type { LibraryEntry } from './api'
 import { GameCard } from './GameCard'
 import { TaskList } from './TaskList'
 import { useLibrary } from './useLibrary'
@@ -9,6 +12,7 @@ import { opfsSupported } from './opfs'
 export function LibraryPage() {
   const lib = useLibrary()
   const fileInput = useRef<HTMLInputElement>(null)
+  const [settingsFor, setSettingsFor] = useState<LibraryEntry | null>(null)
   const busy = lib.tasks.some((t) => t.stage !== 'done' && t.stage !== 'error')
 
   return (
@@ -27,44 +31,38 @@ export function LibraryPage() {
             type="file"
             accept=".iso,.cso,.pbp,.zip"
             className="hidden"
+            aria-label="Choose a PSP game file"
             onChange={(e) => {
               const f = e.target.files?.[0]
               if (f) void lib.addGame(f)
               e.target.value = ''
             }}
           />
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={!opfsSupported()}
-            onClick={() => fileInput.current?.click()}
-          >
+          <button type="button" className="btn btn-primary" disabled={!opfsSupported()} onClick={() => fileInput.current?.click()}>
             Add game
           </button>
         </div>
       </div>
 
       {!opfsSupported() && (
-        <p className="mb-4 text-sm text-amber-300">
-          This browser has no Origin Private File System, so games cannot be cached locally. Use a current
-          desktop Chrome, Edge, Firefox or Safari.
+        <p className="mb-4 text-sm text-amber-300" role="alert">
+          This browser has no Origin Private File System, so games cannot be cached locally. Use a current desktop
+          Chrome, Edge, Firefox or Safari.
         </p>
       )}
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2">
-        <Meter
-          label="Cloud storage"
-          used={lib.profile?.storage_used_bytes ?? 0}
-          total={lib.profile?.storage_quota_bytes ?? 0}
-        />
+        <Meter label="Cloud storage" used={lib.profile?.storage_used_bytes ?? 0} total={lib.profile?.storage_quota_bytes ?? 0} />
         <Meter label="This device (browser cache)" used={lib.device?.usage ?? 0} total={lib.device?.quota ?? 0} />
       </div>
 
       <TaskList tasks={lib.tasks} onDismiss={lib.dropTask} />
 
       {lib.entries.some((e) => e.userGame.last_played_at) && (
-        <section className="mb-6">
-          <h2 className="mb-2 text-sm font-medium text-zinc-400">Continue playing</h2>
+        <section className="mb-6" aria-labelledby="continue-heading">
+          <h2 id="continue-heading" className="mb-2 text-sm font-medium text-zinc-400">
+            Continue playing
+          </h2>
           <div className="flex flex-wrap gap-2">
             {lib.entries
               .filter((e) => e.userGame.last_played_at)
@@ -79,9 +77,21 @@ export function LibraryPage() {
         </section>
       )}
 
-      {lib.error && <p className="mb-4 text-sm text-red-400">{lib.error}</p>}
+      {lib.error && (
+        <p className="mb-4 text-sm text-red-400" role="alert">
+          {lib.error}
+        </p>
+      )}
       {lib.loading ? (
-        <p className="text-zinc-400">Loading…</p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-busy="true" aria-label="Loading library">
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i} className="animate-pulse rounded-lg border border-zinc-800 p-4">
+              <div className="mb-3 aspect-[144/80] rounded bg-zinc-800" />
+              <div className="mb-2 h-4 w-2/3 rounded bg-zinc-800" />
+              <div className="h-3 w-1/2 rounded bg-zinc-800" />
+            </div>
+          ))}
+        </div>
       ) : lib.entries.length === 0 ? (
         <div className="rounded-lg border border-dashed border-zinc-800 p-10 text-center text-zinc-400">
           No games yet. Press <b>Add game</b> and pick an .iso, .cso, .pbp, or a .zip of a homebrew folder.
@@ -95,6 +105,7 @@ export function LibraryPage() {
               busy={busy}
               onDownload={() => void lib.downloadGame(entry)}
               onRemoveLocal={() => void lib.removeFromDevice(entry)}
+              onSettings={() => setSettingsFor(entry)}
               onDeleteCloud={() => {
                 if (
                   window.confirm(
@@ -106,6 +117,15 @@ export function LibraryPage() {
             />
           ))}
         </div>
+      )}
+
+      {settingsFor && (
+        <GameSettingsDialog
+          title={settingsFor.game.title}
+          initial={readCoreSettings(settingsFor.userGame)}
+          onSave={(core) => lib.updateCoreSettings(settingsFor, core)}
+          onClose={() => setSettingsFor(null)}
+        />
       )}
     </div>
   )
@@ -121,7 +141,14 @@ function Meter({ label, used, total }: { label: string; used: number; total: num
           {formatBytes(used)} of {total > 0 ? formatBytes(total) : '-'}
         </span>
       </div>
-      <div className="h-2 overflow-hidden rounded bg-zinc-800">
+      <div
+        className="h-2 overflow-hidden rounded bg-zinc-800"
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(pct)}
+      >
         <div className={`h-full ${pct > 90 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
