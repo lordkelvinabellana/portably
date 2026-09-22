@@ -5,7 +5,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type UploadStatus = 'pending' | 'uploading' | 'ready' | 'failed'
-export type FileFormat = 'iso' | 'cso' | 'chd' | 'pbp' | 'zip'
+export type FileFormat = 'iso' | 'cso' | 'pbp' | 'zip'
 
 export interface Database {
   public: {

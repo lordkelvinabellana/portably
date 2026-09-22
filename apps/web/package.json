@@ -9,15 +9,19 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "copy:ejs": "node scripts/copy-emulatorjs.mjs",
-    "postinstall": "node scripts/copy-emulatorjs.mjs"
+    "postinstall": "node scripts/copy-emulatorjs.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
     "@tailwindcss/vite": "^4.3.3",
+    "hash-wasm": "^4.12.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router": "^8.4.0",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "tus-js-client": "^4.3.1"
   },
   "devDependencies": {
     "@emulatorjs/core-ppsspp": "^4.2.3",
@@ -28,6 +32,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",
-    "vite": "^8.3.0"
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
   }
 }

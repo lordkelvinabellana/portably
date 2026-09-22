@@ -454,3 +454,10 @@ Spike results are recorded in `docs/PHASE0.md`. Two corrections to the design ab
   that made Chromium drop the emulator's context every 7 s); see `docs/PHASE0.md`.
   Guardrail carried into Phase 3: the emulator owns the page's only WebGL context.
 - **Phase 1 can start.** Decisions needed only for product name and default quota.
+- **Phase 1 delivered (2026-09-22)** on branch `phase-1-foundation`: schema + RLS +
+  storage policies + quota trigger, redirect-flow auth (email, Google, Discord), app
+  shell, CI. Manual account setup steps are in `docs/PHASE1.md`.
+- **Phase 2 delivered (2026-09-22, same branch)**: cloud library with PSP metadata
+  parsers, streaming hashing, OPFS cache, tus resumable uploads, verified downloads,
+  shelf UI. Details and the credential-dependent verification list are in
+  `docs/PHASE2.md`. CHD support was dropped because the core does not accept it.

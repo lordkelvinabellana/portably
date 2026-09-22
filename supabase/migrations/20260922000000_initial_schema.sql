@@ -71,7 +71,7 @@ create table public.user_games (
   file_sha256        text not null check (file_sha256 ~ '^[a-f0-9]{64}$'),
   file_size          bigint not null check (file_size > 0),
   file_name          text,
-  file_format        text not null check (file_format in ('iso', 'cso', 'chd', 'pbp', 'zip')),
+  file_format        text not null check (file_format in ('iso', 'cso', 'pbp', 'zip')), -- core.json: elf iso cso prx pbp (+zip for homebrew folders)
   storage_path       text,                                   -- isos/<uid>/<sha256>.<ext>, null until uploaded
   upload_status      text not null default 'pending' check (upload_status in ('pending', 'uploading', 'ready', 'failed')),
   settings           jsonb not null default '{}'::jsonb,
