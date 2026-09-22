@@ -476,3 +476,9 @@ Spike results are recorded in `docs/PHASE0.md`. Two corrections to the design ab
   Terms/Privacy/Licenses pages with an ownership affirmation at sign-up. `docs/PHASE5.md`.
   Remaining before launch: fill legal placeholders, account setup (`docs/PHASE1.md`),
   credential-dependent QA from each phase doc, then merge `phase-1-foundation` into `main`.
+- **Runtime finding (2026-09-22).** On the reference desktop a heavy 3D title ran at 20-24
+  FPS on the EmulatorJS libretro core (stable and nightly), but "much better" on the
+  root-hunter PPSSPP WebAssembly port (PPSSPP 1.20.4). The core, not the browser, is the
+  ceiling. Proposed Phase 6: swap the runtime behind the existing `EmulatorHandle`
+  interface with a per-game fallback flag. Plan, risks and integration map in
+  `docs/PHASE6-RUNTIME.md`.
