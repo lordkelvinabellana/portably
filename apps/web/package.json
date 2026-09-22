@@ -12,8 +12,12 @@
     "postinstall": "node scripts/copy-emulatorjs.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
+    "@tailwindcss/vite": "^4.3.3",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-router": "^8.4.0",
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@emulatorjs/core-ppsspp": "^4.2.3",

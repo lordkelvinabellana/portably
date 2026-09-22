@@ -1,0 +1,12 @@
+/* Styles for the Phase 0 spike page only. */
+.spike h1 { font-size: 20px; margin: 0 0 12px; }
+.spike .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+.spike .ok { color: #4ade80; }
+.spike .bad { color: #f87171; }
+.spike button { background: #2b3040; color: #fff; border: 1px solid #3b4252; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.spike button:disabled { opacity: .5; cursor: default; }
+.spike #ejs-wrap { width: 100%; max-width: 960px; aspect-ratio: 480 / 272; background: #000; margin: 12px 0; }
+.spike #ejs { width: 100%; height: 100%; }
+.spike pre { background: #151821; border: 1px solid #262b38; border-radius: 6px; padding: 10px; font-size: 12px; max-height: 260px; overflow: auto; white-space: pre-wrap; }
+.spike .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 800px) { .spike .grid2 { grid-template-columns: 1fr; } }

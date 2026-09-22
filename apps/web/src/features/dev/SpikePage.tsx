@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import './spike.css'
 
 // Phase 0 spike: prove that the PPSSPP core runs in this browser under
 // cross-origin isolation, measure emulated FPS, and confirm the save/state
@@ -84,7 +85,7 @@ function parseCoreOverrides(): Record<string, string> {
   return out
 }
 
-export default function App() {
+export function SpikePage() {
   const [checks] = useState<Check[]>(envChecks)
   const [file, setFile] = useState<File | null>(null)
   const [started, setStarted] = useState(false)
@@ -257,7 +258,7 @@ export default function App() {
     : null
 
   return (
-    <main>
+    <div className="spike">
       <h1>Portably: Phase 0 spike</h1>
 
       <div className="row">
@@ -316,7 +317,7 @@ export default function App() {
         </button>
       </div>
 
-      <div className="grid">
+      <div className="grid2">
         <div>
           <h3>Event log</h3>
           <pre>{log.join('\n') || 'nothing yet'}</pre>
@@ -331,6 +332,6 @@ export default function App() {
         Emulation by <a href="https://emulatorjs.org">EmulatorJS</a> running the PPSSPP libretro
         core (GPL). No game files are included; load your own dump.
       </p>
-    </main>
+    </div>
   )
 }
