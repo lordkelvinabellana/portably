@@ -1,11 +1,12 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation } from 'react-router'
 import { authRedirectUrl, supabase, supabaseConfigured } from '../../lib/supabase'
 import { useAuth } from '../../app/useAuth'
 import { SetupNotice } from '../../app/RequireAuth'
+import { enabledProviders, type OAuthProvider } from './providers'
 
 type Mode = 'signin' | 'signup'
-type Provider = 'google' | 'discord'
+type Provider = OAuthProvider
 
 export function LoginPage() {
   const { user, ready } = useAuth()
@@ -18,6 +19,17 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [agree, setAgree] = useState(false)
+  const [providers, setProviders] = useState<OAuthProvider[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    enabledProviders().then((p) => {
+      if (!cancelled) setProviders(p)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   if (!supabaseConfigured) return <SetupNotice />
   if (ready && user) return <Navigate to={from} replace />
@@ -67,20 +79,28 @@ export function LoginPage() {
       <h1 className="mb-1 text-2xl font-semibold">{mode === 'signin' ? 'Sign in' : 'Create account'}</h1>
       <p className="mb-6 text-sm text-zinc-400">Your games and saves follow you to any desktop browser.</p>
 
-      <div className="grid gap-2">
-        <button type="button" className="btn" disabled={busy} onClick={() => oauth('google')}>
-          Continue with Google
-        </button>
-        <button type="button" className="btn" disabled={busy} onClick={() => oauth('discord')}>
-          Continue with Discord
-        </button>
-      </div>
+      {providers.length > 0 && (
+        <>
+          <div className="grid gap-2">
+            {providers.includes('google') && (
+              <button type="button" className="btn" disabled={busy} onClick={() => oauth('google')}>
+                Continue with Google
+              </button>
+            )}
+            {providers.includes('discord') && (
+              <button type="button" className="btn" disabled={busy} onClick={() => oauth('discord')}>
+                Continue with Discord
+              </button>
+            )}
+          </div>
 
-      <div className="my-5 flex items-center gap-3 text-xs text-zinc-500">
-        <span className="h-px flex-1 bg-zinc-800" />
-        or with email
-        <span className="h-px flex-1 bg-zinc-800" />
-      </div>
+          <div className="my-5 flex items-center gap-3 text-xs text-zinc-500">
+            <span className="h-px flex-1 bg-zinc-800" />
+            or with email
+            <span className="h-px flex-1 bg-zinc-800" />
+          </div>
+        </>
+      )}
 
       <form onSubmit={submit} className="grid gap-3">
         <label className="grid gap-1 text-sm">

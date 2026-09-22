@@ -17,6 +17,22 @@ Branch: `phase-1-foundation`. Date started: 2026-09-22.
 | CI: lint, typecheck, build; migrations applied on a local stack | `.github/workflows/ci.yml` | written, runs once the repo is on GitHub |
 | Vercel headers and SPA rewrite | `vercel.json` | done (Phase 0) |
 
+## Provisioning status (2026-09-22)
+
+| Item | Status |
+|---|---|
+| GitHub repo | `lordkelvinabellana/portably` (private), `main` pushed, CI run 1 green |
+| Supabase project | `portably`, ref `yprgljubbbjqvbjwvvas`, region Asia-Pacific, org on **Free** plan |
+| Schema | Applied via SQL editor: 6 tables, 4 buckets, 11 policies, 16 triggers |
+| Auth URLs | Site URL `http://localhost:5173`; redirects `http://localhost:5173/auth/callback`, `http://localhost:4173/auth/callback` |
+| Frontend env | `apps/web/.env.local` holds the project URL and publishable key (`sb_publishable_...`) |
+| Email sign-in | Enabled, confirmation email required (`mailer_autoconfirm = false`) |
+| Google / Discord | Not configured (need OAuth client ids and secrets) |
+| Pro plan / 2 GB uploads | **Not done.** On Free the per-file cap is 50 MB, so only small homebrew uploads work until the org is upgraded |
+| Vercel | Project `portably` on team `lordkelvinabellanas-projects` (Hobby), imported from GitHub, env vars set for Production + Preview. Production: **https://portably-seven.vercel.app** (verified: COOP/COEP headers, emulator runtime, PWA files, SPA rewrite). Preview URLs are behind Vercel Authentication (default). |
+| Production redirect URL | `https://portably-seven.vercel.app/auth/callback` added to Supabase redirect URLs |
+| Sign-in page | Shows only providers the project has enabled (reads `/auth/v1/settings`), so a disabled Google/Discord never produces "provider is not enabled" |
+
 ## Manual steps (need your accounts)
 
 1. **Create the Supabase project** (Pro plan, see PLAN.md section 2) at
