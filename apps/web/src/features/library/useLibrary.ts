@@ -20,6 +20,22 @@ import { formatFromName, identifyGame } from './psp/identify'
 import { normalizeHomebrewZip } from './psp/zip'
 import { createResumableUpload, type ResumableUpload } from './upload'
 
+/** Turn storage/tus failures into something a player can act on. */
+export function friendlyUploadError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e)
+  if (/response code: 413|Maximum size exceeded|Payload too large/i.test(msg)) {
+    return (
+      'Cloud upload refused: this file is larger than the storage plan allows (the Supabase Free plan caps uploads at 50 MB). ' +
+      'The game is saved on this device and playable here; upload it again after the plan is upgraded.'
+    )
+  }
+  if (/quota exceeded/i.test(msg)) {
+    return 'Cloud upload refused: your storage quota is full. Delete a game from the cloud to free space.'
+  }
+  if (/not signed in|JWT|401/i.test(msg)) return 'Your session expired. Sign in again and add the game once more to resume the upload.'
+  return msg
+}
+
 export type TaskStage =
   | 'repacking'
   | 'hashing'
@@ -187,7 +203,7 @@ export function useLibrary() {
         setTimeout(() => dropTask(id), 4000)
       } catch (e) {
         const cancelled = e instanceof DOMException && e.name === 'AbortError'
-        patchTask(id, { stage: 'error', error: cancelled ? 'Cancelled' : e instanceof Error ? e.message : String(e) })
+        patchTask(id, { stage: 'error', error: cancelled ? 'Cancelled' : friendlyUploadError(e) })
         // Mark the row so the shelf shows "upload failed" with a retry, if it was created.
         void refresh()
       }

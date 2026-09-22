@@ -28,7 +28,7 @@ Branch: `phase-1-foundation`. Date started: 2026-09-22.
 | Frontend env | `apps/web/.env.local` holds the project URL and publishable key (`sb_publishable_...`) |
 | Email sign-in | Enabled, confirmation email required (`mailer_autoconfirm = false`) |
 | Google / Discord | Not configured (need OAuth client ids and secrets) |
-| Pro plan / 2 GB uploads | **Not done.** On Free the per-file cap is 50 MB, so only small homebrew uploads work until the org is upgraded |
+| Pro plan / 2 GB uploads | **Not done.** Confirmed in practice: a 732 MB ISO upload returned HTTP 413 "Maximum size exceeded" from the resumable endpoint. After upgrading the org to Pro, also raise Dashboard -> Storage -> Settings -> "Upload file size limit" to at least 2 GB (the bucket limit cannot exceed the global one). Games stay playable from the local cache in the meantime. |
 | Vercel | Project `portably` on team `lordkelvinabellanas-projects` (Hobby), imported from GitHub, env vars set for Production + Preview. Production: **https://portably-seven.vercel.app** (verified: COOP/COEP headers, emulator runtime, PWA files, SPA rewrite). Preview URLs are behind Vercel Authentication (default). |
 | Production redirect URL | `https://portably-seven.vercel.app/auth/callback` added to Supabase redirect URLs |
 | Sign-in page | Shows only providers the project has enabled (reads `/auth/v1/settings`), so a disabled Google/Discord never produces "provider is not enabled" |

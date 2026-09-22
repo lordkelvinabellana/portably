@@ -38,11 +38,11 @@ export function GameCard({ entry, busy, onDownload, onRemoveLocal, onDeleteCloud
       </p>
       <p className="mt-1 text-xs text-zinc-500">Last played {formatRelative(userGame.last_played_at)}</p>
       <span className={`mt-3 inline-block w-fit rounded px-2 py-0.5 text-xs ${statusClass}`}>
-        {userGame.upload_status === 'failed'
-          ? 'Upload failed'
-          : userGame.upload_status === 'uploading'
-            ? 'Upload incomplete'
-            : status}
+        {userGame.upload_status === 'failed' || userGame.upload_status === 'uploading'
+          ? local
+            ? 'On this device only · cloud upload pending'
+            : 'Cloud upload incomplete'
+          : status}
       </span>
 
       <div className="mt-4 flex flex-wrap gap-2">
