@@ -73,6 +73,8 @@ export interface EmulatorHandle {
   fullscreen(on: boolean): void
   getState(): Uint8Array
   loadState(state: Uint8Array): void
+  /** PNG of the current frame, or null when capture is unavailable. */
+  screenshot(): Promise<Blob | null>
   frameCount(): number
   /** Flushes saves, aborts the wasm module. Irreversible for this page load. */
   exit(): void
@@ -123,6 +125,10 @@ export async function mountEmulator(o: MountOptions): Promise<EmulatorHandle> {
     fullscreen: (on) => ejs.toggleFullscreen?.(on),
     getState: () => ejs.gameManager.getState(),
     loadState: (s) => ejs.gameManager.loadState(s),
+    screenshot: async () => {
+      const r = await ejs.takeScreenshot?.('canvas', 'png', 1)
+      return r?.blob instanceof Blob ? r.blob : null
+    },
     frameCount: () => Number(ejs.gameManager?.getFrameNum?.() ?? 0),
     exit: () => {
       try {

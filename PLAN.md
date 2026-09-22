@@ -465,3 +465,8 @@ Spike results are recorded in `docs/PHASE0.md`. Two corrections to the design ab
   (restore before boot via IDBFS, live-FS polling, versioned bundles, conflict dialog),
   play sessions, homebrew zip repacking. Verified against the emulator without Supabase;
   the credential-dependent checks are listed in `docs/PHASE3.md`.
+- **Phase 4 delivered (2026-09-22, same branch)**: save-state slots 1-9 with screenshots,
+  auto-resume slot 0 (every 3 min, on tab hide, on exit), resume offer at boot,
+  core-version tagging with a load warning, state gallery in the Player. Verified against
+  the emulator via the dev harness; credential-dependent checks in `docs/PHASE4.md`.
+  MVP scope (Phases 0-4) is now code-complete pending account setup and manual QA.

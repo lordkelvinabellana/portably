@@ -7,6 +7,10 @@ import { downloadToDevice } from '../library/download'
 import { getLocalFile } from '../library/opfs'
 import { emulatorAlreadyUsed, mountEmulator, type EmulatorHandle } from '../emulator/emulatorjs'
 import { SaveSync, type SyncConflict, type SyncStatus } from '../sync/SaveSync'
+import { getCoreVersion } from '../states/coreVersion'
+import { StateManager, type StatesStatus } from '../states/StateManager'
+import { AUTO_SLOT } from '../states/statesApi'
+import { StatesPanel } from '../states/StatesPanel'
 import { deviceLabel, endPlaySession, startPlaySession } from './sessions'
 
 type Phase =
@@ -38,8 +42,14 @@ export function PlayerPage() {
   const [entry, setEntry] = useState<LibraryEntry | null>(null)
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
   const [sync, setSync] = useState<SyncStatus | null>(null)
+  const [states, setStates] = useState<StatesStatus | null>(null)
+  const [coreVersion, setCoreVersion] = useState<string | null>(null)
+  const [showStates, setShowStates] = useState(false)
+  const [resumeOffer, setResumeOffer] = useState<{ at: string; device: string | null; otherBuild: boolean } | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [hidden, setHidden] = useState(document.visibilityState === 'hidden')
   const syncRef = useRef<SaveSync | null>(null)
+  const statesRef = useRef<StateManager | null>(null)
   const emuRef = useRef<EmulatorHandle | null>(null)
   const sessionRef = useRef<{ id: string | null; startedAt: number } | null>(null)
   const container = useRef<HTMLDivElement>(null)
@@ -119,6 +129,17 @@ export function PlayerPage() {
           void startPlaySession(user.id, entry.game.id).then((id) => {
             if (sessionRef.current) sessionRef.current.id = id
           })
+          // Save states: list slots, offer auto-resume, start periodic snapshots.
+          const sm = new StateManager(user.id, entry.game, handle, setStates)
+          statesRef.current = sm
+          void (async () => {
+            const cv = await getCoreVersion()
+            setCoreVersion(cv)
+            await sm.refresh()
+            const auto = sm.slot(AUTO_SLOT)
+            if (auto) setResumeOffer({ at: auto.created_at, device: null, otherBuild: auto.core_version !== cv })
+            sm.startAutoResume()
+          })()
         },
         onExit: () => {
           if (!cancelled) setPhase({ kind: 'exited' })
@@ -155,9 +176,31 @@ export function PlayerPage() {
     setPhase({ kind: 'booting' })
   }
 
+  async function loadSlot(slot: number) {
+    const sm = statesRef.current
+    if (!sm) return
+    let result = await sm.loadSlot(slot)
+    if (result === 'version-mismatch') {
+      if (
+        window.confirm(
+          'This state was made with a different emulator build and may not load correctly. Your saves are unaffected. Try anyway?',
+        )
+      ) {
+        result = await sm.loadSlot(slot, true)
+      } else return
+    }
+    setNotice(result === 'ok' ? `Loaded ${slot === AUTO_SLOT ? 'auto-resume' : `slot ${slot}`}` : 'Could not load that state')
+    window.setTimeout(() => setNotice(null), 3000)
+  }
+
   async function exitToLibrary() {
     const s = syncRef.current
+    const sm = statesRef.current
     const emu = emuRef.current
+    if (sm) {
+      sm.stop()
+      await sm.autoResume()
+    }
     if (s) {
       await s.syncNow()
       s.stop()
@@ -172,6 +215,7 @@ export function PlayerPage() {
   }
 
   const title = entry?.game.title ?? 'Loading…'
+  const running = phase.kind === 'running'
 
   return (
     <div>
@@ -183,23 +227,26 @@ export function PlayerPage() {
           </span>
         )}
         <div className="ml-auto flex items-center gap-2">
-          {phase.kind === 'running' && (
+          {running && (
             <>
               <SyncBadge status={sync} />
               <button type="button" className="btn" onClick={() => void syncRef.current?.syncNow()}>
                 Sync now
+              </button>
+              <button type="button" className={`btn ${showStates ? 'bg-zinc-700' : ''}`} onClick={() => setShowStates((v) => !v)}>
+                States
               </button>
               <button type="button" className="btn" onClick={() => emuRef.current?.fullscreen(true)}>
                 Fullscreen
               </button>
             </>
           )}
-          {(phase.kind === 'running' || phase.kind === 'exited' || phase.kind === 'error') && (
+          {(running || phase.kind === 'exited' || phase.kind === 'error') && (
             <button type="button" className="btn" onClick={() => void exitToLibrary()}>
               Exit to library
             </button>
           )}
-          {phase.kind !== 'running' && phase.kind !== 'exited' && phase.kind !== 'error' && (
+          {!running && phase.kind !== 'exited' && phase.kind !== 'error' && (
             <Link to="/" className="btn">
               Back
             </Link>
@@ -207,11 +254,12 @@ export function PlayerPage() {
         </div>
       </div>
 
-      {hidden && phase.kind === 'running' && (
+      {hidden && running && (
         <p className="mb-2 rounded bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
           Emulation is paused while this tab is hidden. Your progress was synced.
         </p>
       )}
+      {notice && <p className="mb-2 rounded bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">{notice}</p>}
 
       {phase.kind === 'error' && <p className="mb-3 rounded bg-red-500/10 px-3 py-2 text-sm text-red-300">{phase.message}</p>}
 
@@ -232,20 +280,54 @@ export function PlayerPage() {
         </div>
       )}
 
-      {phase.kind === 'conflict' && (
-        <ConflictDialog conflict={phase.conflict} onChoose={(c) => void resolveConflict(c)} />
-      )}
+      {phase.kind === 'conflict' && <ConflictDialog conflict={phase.conflict} onChoose={(c) => void resolveConflict(c)} />}
 
       {(phase.kind === 'preparing' || phase.kind === 'loading') && (
         <p className="mb-3 text-sm text-zinc-400">{phase.kind === 'loading' ? 'Loading…' : 'Checking cloud saves…'}</p>
+      )}
+
+      {running && resumeOffer && (
+        <div className="mb-2 flex flex-wrap items-center gap-3 rounded border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-sm">
+          <span>
+            Resume where you left off? Snapshot from {formatRelative(resumeOffer.at)}
+            {resumeOffer.otherBuild ? ' (different emulator build)' : ''}.
+          </span>
+          <span className="ml-auto flex gap-2">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setResumeOffer(null)
+                void loadSlot(AUTO_SLOT)
+              }}
+            >
+              Resume
+            </button>
+            <button type="button" className="btn" onClick={() => setResumeOffer(null)}>
+              Start fresh
+            </button>
+          </span>
+        </div>
       )}
 
       <div
         ref={container}
         id="portably-emulator"
         className="w-full max-w-[960px] bg-black"
-        style={{ aspectRatio: '480 / 272', display: phase.kind === 'booting' || phase.kind === 'running' || phase.kind === 'exited' ? undefined : 'none' }}
+        style={{ aspectRatio: '480 / 272', display: phase.kind === 'booting' || running || phase.kind === 'exited' ? undefined : 'none' }}
       />
+
+      {running && showStates && states && (
+        <StatesPanel
+          status={states}
+          coreVersion={coreVersion}
+          onSave={(slot) => void statesRef.current?.saveSlot(slot)}
+          onLoad={(slot) => void loadSlot(slot)}
+          onDelete={(slot) => {
+            if (window.confirm(`Delete save state in slot ${slot}?`)) void statesRef.current?.deleteSlot(slot)
+          }}
+        />
+      )}
 
       {phase.kind === 'exited' && <p className="mt-3 text-sm text-zinc-400">The emulator has exited.</p>}
     </div>

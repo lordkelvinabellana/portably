@@ -67,6 +67,25 @@ export function PlayerHarnessPage() {
     add(`wrote ${back.length} test files via IDBFS (bundle ${formatBytes(gz.size)}); boot to see them in the live FS`)
   }
 
+  const [shotUrl, setShotUrl] = useState<string | null>(null)
+
+  async function stateAndScreenshot() {
+    const h = emu.current
+    if (!h) return add('no emulator')
+    const t0 = performance.now()
+    const raw = h.getState()
+    const t1 = performance.now()
+    const gz = await gzip(raw)
+    const t2 = performance.now()
+    add(`getState ${formatBytes(raw.byteLength)} in ${(t1 - t0).toFixed(0)} ms; gzip -> ${formatBytes(gz.size)} in ${(t2 - t1).toFixed(0)} ms`)
+    const shot = await h.screenshot()
+    add(`screenshot: ${shot ? `${shot.type} ${formatBytes(shot.size)}` : 'null'}`)
+    if (shot) setShotUrl(URL.createObjectURL(shot))
+    const back = await gunzip(gz)
+    h.loadState(back)
+    add(`loadState(${formatBytes(back.byteLength)}) ok, frame=${h.frameCount()}`)
+  }
+
   return (
     <div>
       <h1 className="mb-2 text-xl font-semibold">Dev: player harness</h1>
@@ -83,10 +102,14 @@ export function PlayerHarnessPage() {
         <button type="button" className="btn" onClick={() => void liveSnapshot()} disabled={!running}>
           Live FS snapshot
         </button>
+        <button type="button" className="btn" onClick={() => void stateAndScreenshot().catch((e) => add(`ERROR ${String(e)}`))} disabled={!running}>
+          State + screenshot round trip
+        </button>
         <button type="button" className="btn" onClick={() => emu.current?.exit()} disabled={!running}>
           Exit
         </button>
       </div>
+      {shotUrl && <img src={shotUrl} alt="screenshot" className="mb-3 h-32 rounded border border-zinc-800" />}
       <div ref={container} id="harness-emulator" className="mb-3 w-full max-w-[960px] bg-black" style={{ aspectRatio: '480 / 272' }} />
       <pre className="whitespace-pre-wrap rounded border border-zinc-800 bg-zinc-900 p-3 text-xs">{log.join('\n') || 'idle'}</pre>
     </div>

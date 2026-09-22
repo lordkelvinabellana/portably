@@ -111,6 +111,7 @@ export interface Database {
           screenshot_path?: string | null
           size_bytes: number
           core_version: string
+          created_at?: string
         }
         Update: Partial<Database['public']['Tables']['save_states']['Insert']>
         Relationships: []
