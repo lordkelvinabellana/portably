@@ -1,4 +1,5 @@
-import { supabase } from '../../lib/supabase'
+import { LOCAL_ONLY, supabase } from '../../lib/supabase'
+import { patchLocalEntry } from '../library/localLibrary'
 
 export function deviceLabel(): string {
   const ua = navigator.userAgent
@@ -8,6 +9,10 @@ export function deviceLabel(): string {
 }
 
 export async function startPlaySession(userId: string, gameId: number): Promise<string | null> {
+  if (LOCAL_ONLY) {
+    patchLocalEntry(gameId, { last_played_at: new Date().toISOString() })
+    return null
+  }
   const { data, error } = await supabase
     .from('play_sessions')
     .insert({ user_id: userId, game_id: gameId, device_label: deviceLabel() })
@@ -19,6 +24,10 @@ export async function startPlaySession(userId: string, gameId: number): Promise<
 }
 
 export async function endPlaySession(sessionId: string | null, userId: string, gameId: number, seconds: number, priorTotal: number) {
+  if (LOCAL_ONLY) {
+    patchLocalEntry(gameId, { last_played_at: new Date().toISOString(), total_play_seconds: priorTotal + Math.max(0, Math.round(seconds)) })
+    return
+  }
   if (sessionId) await supabase.from('play_sessions').update({ ended_at: new Date().toISOString() }).eq('id', sessionId)
   await supabase
     .from('user_games')

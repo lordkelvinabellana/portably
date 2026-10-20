@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import type { LibraryEntry } from './api'
+import { LOCAL_ONLY } from '../../lib/supabase'
 import { formatBytes, formatRelative } from '../../lib/format'
 
 interface Props {
@@ -60,7 +61,8 @@ export function GameCard({ entry, busy, onDownload, onRemoveLocal, onDeleteCloud
             Download
           </button>
         )}
-        {local && (
+        {/* Local-only: removing the file would leave an unplayable card, so Delete covers it. */}
+        {local && !LOCAL_ONLY && (
           <button type="button" className="btn" disabled={busy} onClick={onRemoveLocal}>
             Remove from device
           </button>
@@ -68,7 +70,7 @@ export function GameCard({ entry, busy, onDownload, onRemoveLocal, onDeleteCloud
         <button type="button" className="btn ml-auto" aria-label={`Settings for ${game.title}`} title="Game settings" onClick={onSettings}>
           ⚙
         </button>
-        <button type="button" className="btn text-red-300" disabled={busy} onClick={onDeleteCloud} aria-label={`Delete ${game.title} from cloud library`}>
+        <button type="button" className="btn text-red-300" disabled={busy} onClick={onDeleteCloud} aria-label={`Delete ${game.title} from ${LOCAL_ONLY ? '' : 'cloud '}library`}>
           Delete
         </button>
       </div>

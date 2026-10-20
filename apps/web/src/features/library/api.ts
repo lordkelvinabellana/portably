@@ -1,5 +1,6 @@
-import { supabase } from '../../lib/supabase'
+import { LOCAL_ONLY, supabase } from '../../lib/supabase'
 import type { FileFormat, Game, Profile, UploadStatus, UserGame } from '../../lib/db.types'
+import { readLocalLibrary, removeLocalEntry } from './localLibrary'
 
 export interface LibraryEntry {
   game: Game
@@ -13,6 +14,14 @@ export async function fetchProfile(userId: string): Promise<Profile> {
 }
 
 export async function fetchLibrary(userId: string): Promise<LibraryEntry[]> {
+  if (LOCAL_ONLY) {
+    // Same order as the query below: last played first, never-played last, then newest added.
+    return readLocalLibrary().sort(
+      (a, b) =>
+        (b.userGame.last_played_at ?? '').localeCompare(a.userGame.last_played_at ?? '') ||
+        b.userGame.created_at.localeCompare(a.userGame.created_at),
+    )
+  }
   const { data: rows, error } = await supabase
     .from('user_games')
     .select('*')
@@ -31,6 +40,7 @@ export async function fetchLibrary(userId: string): Promise<LibraryEntry[]> {
 }
 
 export async function fetchEntry(userId: string, gameId: number): Promise<LibraryEntry | null> {
+  if (LOCAL_ONLY) return readLocalLibrary().find((e) => e.game.id === gameId) ?? null
   const { data: userGame, error } = await supabase
     .from('user_games')
     .select('*')
@@ -89,6 +99,7 @@ export async function setUploadStatus(
 
 /** Delete the cloud object (if any) and the library row. Saves are kept on purpose. */
 export async function deleteUserGame(entry: LibraryEntry): Promise<void> {
+  if (LOCAL_ONLY) return removeLocalEntry(entry.game.id)
   const path = entry.userGame.storage_path
   if (path) {
     const slash = path.indexOf('/')

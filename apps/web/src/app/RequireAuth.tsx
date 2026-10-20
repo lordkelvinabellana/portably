@@ -1,11 +1,12 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { useAuth } from './useAuth'
-import { supabaseConfigured } from '../lib/supabase'
+import { LOCAL_ONLY, supabaseConfigured } from '../lib/supabase'
 
 /** Gate for signed-in routes. Remembers where the user was heading. */
 export function RequireAuth() {
   const { user, ready } = useAuth()
   const location = useLocation()
+  if (LOCAL_ONLY) return <Outlet />
   if (!supabaseConfigured) return <SetupNotice />
   if (!ready) return <FullPageMessage>Loading your session…</FullPageMessage>
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />

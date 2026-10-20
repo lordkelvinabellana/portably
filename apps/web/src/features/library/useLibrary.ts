@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../app/useAuth'
 import type { Profile } from '../../lib/db.types'
-import { supabase } from '../../lib/supabase'
+import { LOCAL_ONLY, supabase } from '../../lib/supabase'
 import { withCoreSettings, type CoreSettings } from '../settings/coreSettings'
 import {
   deleteUserGame,
@@ -14,6 +14,7 @@ import {
   type LibraryEntry,
 } from './api'
 import { downloadToDevice } from './download'
+import { patchLocalEntry, putLocalEntry } from './localLibrary'
 import { sha256File } from './hash'
 import { hasLocal, listLocalShas, removeLocal, requestPersistentStorage, storageEstimate, writeLocal } from './opfs'
 import { formatFromName, identifyGame } from './psp/identify'
@@ -93,7 +94,7 @@ export function useLibrary() {
     try {
       const [entries, profile, local, device] = await Promise.all([
         fetchLibrary(user.id),
-        fetchProfile(user.id),
+        LOCAL_ONLY ? null : fetchProfile(user.id),
         listLocalShas(),
         storageEstimate(),
       ])
@@ -142,9 +143,11 @@ export function useLibrary() {
         patchTask(id, { detail: `${identity.title} (${identity.discId})` })
 
         const existing = state.entries.find((e) => e.userGame.file_sha256 === sha)
-        const game = existing?.game ?? (await upsertGame(identity.discId, identity.title, identity.region))
+        const local = LOCAL_ONLY ? putLocalEntry(sha, file, identity) : null
+        const game = local?.game ?? existing?.game ?? (await upsertGame(identity.discId, identity.title, identity.region))
         const userGame =
-          existing && existing.userGame.upload_status === 'ready'
+          local?.userGame ??
+          (existing && existing.userGame.upload_status === 'ready'
             ? existing.userGame
             : await upsertUserGame({
                 user_id: user.id,
@@ -153,7 +156,7 @@ export function useLibrary() {
                 file_size: file.size,
                 file_name: file.name,
                 file_format: identity.format,
-              })
+              }))
 
         if (!(await hasLocal(sha))) {
           patchTask(id, { stage: 'caching', progress: 0 })
@@ -161,8 +164,8 @@ export function useLibrary() {
         }
         await refresh()
 
-        if (userGame.upload_status === 'ready' && userGame.storage_path) {
-          patchTask(id, { stage: 'done', progress: 1, detail: 'Already in your cloud library' })
+        if (LOCAL_ONLY || (userGame.upload_status === 'ready' && userGame.storage_path)) {
+          patchTask(id, { stage: 'done', progress: 1, detail: LOCAL_ONLY ? 'Saved in this browser' : 'Already in your cloud library' })
           setTimeout(() => dropTask(id), 4000)
           return
         }
@@ -256,6 +259,10 @@ export function useLibrary() {
 
   const updateCoreSettings = useCallback(
     async (entry: LibraryEntry, core: CoreSettings) => {
+      if (LOCAL_ONLY) {
+        patchLocalEntry(entry.game.id, { settings: withCoreSettings(entry.userGame.settings, core) })
+        return refresh()
+      }
       const { error } = await supabase
         .from('user_games')
         .update({ settings: withCoreSettings(entry.userGame.settings, core) })

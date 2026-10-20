@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { useAuth } from '../../app/useAuth'
+import { LOCAL_ONLY } from '../../lib/supabase'
 import { formatBytes, formatRelative } from '../../lib/format'
 import { fetchEntry, type LibraryEntry } from '../library/api'
 import { downloadToDevice } from '../library/download'
@@ -96,7 +97,14 @@ export function PlayerPage() {
         setEntry(e)
         const local = await getLocalFile(e.userGame.file_sha256)
         if (cancelled) return
-        setPhase(local ? { kind: 'preparing' } : { kind: 'need-download', progress: null })
+        // Local-only mode has no cloud saves to check and no cloud copy to download.
+        setPhase(
+          local
+            ? { kind: LOCAL_ONLY ? 'booting' : 'preparing' }
+            : LOCAL_ONLY
+              ? { kind: 'error', message: 'This game is no longer stored in this browser. Add it again from the library.' }
+              : { kind: 'need-download', progress: null },
+        )
       } catch (err) {
         if (!cancelled) setPhase({ kind: 'error', message: err instanceof Error ? err.message : String(err) })
       }
@@ -149,7 +157,8 @@ export function PlayerPage() {
           void startPlaySession(user.id, entry.game.id).then((id) => {
             if (sessionRef.current) sessionRef.current.id = id
           })
-          // Save states: list slots, offer auto-resume, start periodic snapshots.
+          // Save states: list slots, offer auto-resume, start periodic snapshots. They live in the cloud only.
+          if (LOCAL_ONLY) return
           const sm = new StateManager(user.id, entry.game, handle, setStates)
           statesRef.current = sm
           void (async () => {
@@ -249,13 +258,17 @@ export function PlayerPage() {
         <div className="ml-auto flex items-center gap-2">
           {running && (
             <>
-              <SyncBadge status={sync} />
-              <button type="button" className="btn" onClick={() => void syncRef.current?.syncNow()}>
-                Sync now
-              </button>
-              <button type="button" className={`btn ${showStates ? 'bg-zinc-700' : ''}`} aria-pressed={showStates} onClick={() => setShowStates((v) => !v)}>
-                States
-              </button>
+              {!LOCAL_ONLY && (
+                <>
+                  <SyncBadge status={sync} />
+                  <button type="button" className="btn" onClick={() => void syncRef.current?.syncNow()}>
+                    Sync now
+                  </button>
+                  <button type="button" className={`btn ${showStates ? 'bg-zinc-700' : ''}`} aria-pressed={showStates} onClick={() => setShowStates((v) => !v)}>
+                    States
+                  </button>
+                </>
+              )}
               <button type="button" className={`btn ${showKeys ? 'bg-zinc-700' : ''}`} aria-pressed={showKeys} onClick={() => setShowKeys((v) => !v)}>
                 Keys
               </button>
@@ -285,7 +298,7 @@ export function PlayerPage() {
 
       {hidden && running && (
         <p className="mb-2 rounded bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
-          Emulation is paused while this tab is hidden. Your progress was synced.
+          Emulation is paused while this tab is hidden.{LOCAL_ONLY ? '' : ' Your progress was synced.'}
         </p>
       )}
       {notice && <p className="mb-2 rounded bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">{notice}</p>}

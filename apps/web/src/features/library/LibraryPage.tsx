@@ -8,6 +8,7 @@ import { GameCard } from './GameCard'
 import { TaskList } from './TaskList'
 import { useLibrary } from './useLibrary'
 import { opfsSupported } from './opfs'
+import { LOCAL_ONLY } from '../../lib/supabase'
 
 export function LibraryPage() {
   const lib = useLibrary()
@@ -21,8 +22,9 @@ export function LibraryPage() {
         <div>
           <h1 className="text-2xl font-semibold">Your library</h1>
           <p className="text-sm text-zinc-400">
-            Add a PSP image you own. It is fingerprinted, kept on this device, and uploaded to your private
-            cloud storage so it appears on every device you sign in from.
+            {LOCAL_ONLY
+              ? 'Add a PSP game you own. It is fingerprinted and kept in this browser with its saves. Nothing is uploaded.'
+              : 'Add a PSP image you own. It is fingerprinted, kept on this device, and uploaded to your private cloud storage so it appears on every device you sign in from.'}
           </p>
         </div>
         <div className="ml-auto flex items-center gap-3">
@@ -52,7 +54,7 @@ export function LibraryPage() {
       )}
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2">
-        <Meter label="Cloud storage" used={lib.profile?.storage_used_bytes ?? 0} total={lib.profile?.storage_quota_bytes ?? 0} />
+        {!LOCAL_ONLY && <Meter label="Cloud storage" used={lib.profile?.storage_used_bytes ?? 0} total={lib.profile?.storage_quota_bytes ?? 0} />}
         <Meter label="This device (browser cache)" used={lib.device?.usage ?? 0} total={lib.device?.quota ?? 0} />
       </div>
 
@@ -109,7 +111,7 @@ export function LibraryPage() {
               onDeleteCloud={() => {
                 if (
                   window.confirm(
-                    `Delete "${entry.game.title}" from your cloud library? Your saves are kept. The local copy is removed too.`,
+                    `Delete "${entry.game.title}" from your ${LOCAL_ONLY ? '' : 'cloud '}library? Your saves are kept. The local copy is removed too.`,
                   )
                 )
                   void lib.deleteFromCloud(entry, true)

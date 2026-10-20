@@ -1,14 +1,17 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import type { Session } from '@supabase/supabase-js'
+import type { Session, User } from '@supabase/supabase-js'
 import { AuthContext, type AuthState } from './authContext'
-import { supabase, supabaseConfigured } from '../lib/supabase'
+import { LOCAL_ONLY, supabase, supabaseConfigured } from '../lib/supabase'
+
+// Local-only mode has no accounts; one fixed user keeps the signed-in code paths working.
+const LOCAL_USER = { id: 'local' } as User
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
-  const [ready, setReady] = useState(!supabaseConfigured)
+  const [ready, setReady] = useState(LOCAL_ONLY || !supabaseConfigured)
 
   useEffect(() => {
-    if (!supabaseConfigured) return
+    if (LOCAL_ONLY || !supabaseConfigured) return
     let cancelled = false
     supabase.auth.getSession().then(({ data }) => {
       if (cancelled) return
@@ -27,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value: AuthState = {
     session,
-    user: session?.user ?? null,
+    user: LOCAL_ONLY ? LOCAL_USER : (session?.user ?? null),
     ready,
     signOut: async () => {
       await supabase.auth.signOut()

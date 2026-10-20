@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router'
 import { useAuth } from './useAuth'
+import { LOCAL_ONLY } from '../lib/supabase'
 
 export function Layout() {
   const { user, signOut } = useAuth()
@@ -18,7 +19,9 @@ export function Layout() {
             Library
           </NavLink>
           <div className="ml-auto flex items-center gap-3 text-sm">
-            {user ? (
+            {LOCAL_ONLY ? (
+              <span className="text-zinc-400">No account needed · games and saves stay in this browser</span>
+            ) : user ? (
               <>
                 <span className="text-zinc-400">{user.email}</span>
                 <button type="button" className="btn" onClick={() => void signOut()}>
